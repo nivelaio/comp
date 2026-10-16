@@ -10,6 +10,8 @@ const isStandalone = process.env.NEXT_OUTPUT_STANDALONE === 'true';
 const workspaceRoot = path.join(__dirname, '..', '..');
 
 const config: NextConfig = {
+  // Nivela: el chequeo de tipos de este app tarda +25 min en el build de Vercel; upstream lo corre en su CI.
+  typescript: { ignoreBuildErrors: true },
   // Ensure Turbopack can import .md files as raw strings during dev
   turbopack: {
     root: workspaceRoot,
