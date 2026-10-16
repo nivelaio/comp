@@ -13,7 +13,9 @@ COPY package.json bun.lock ./
 # that the API doesn't need. Removing them cuts ~800 packages from the install.
 RUN cat package.json | bun -e " \
   const pkg = JSON.parse(await Bun.stdin.text()); \
+  const sharp = (pkg.devDependencies || {}).sharp; \
   delete pkg.dependencies; delete pkg.devDependencies; delete pkg.scripts; \
+  if (sharp) pkg.dependencies = { sharp }; /* Nivela: apps/api importa sharp sin declararlo */ \
   console.log(JSON.stringify(pkg, null, 2));" > package.min.json \
   && mv package.min.json package.json
 
