@@ -10,45 +10,23 @@ export const vercelManifest: IntegrationManifest = {
   docsUrl: 'https://vercel.com/docs/rest-api',
   isActive: true,
 
+  // Nivela: token de equipo en vez de OAuth. Las Integrations privadas/no listadas de
+  // Vercel dan 404 en vercel.com/integrations/{slug}/new, así que el flujo OAuth no sirve
+  // para self-host. Un token con scope de equipo no necesita teamId en la API.
   auth: {
-    type: 'oauth2',
-    config: {
-      authorizeUrl: 'https://vercel.com/integrations/{APP_SLUG}/new',
-      tokenUrl: 'https://api.vercel.com/v2/oauth/access_token',
-      scopes: [],
-      pkce: false,
-      clientAuthMethod: 'body',
-      supportsRefreshToken: false,
-      setupInstructions: `## Setting up Vercel OAuth
-
-### Step 1: Create a Vercel App
-1. Go to your [Vercel Team Settings → Apps](https://vercel.com/your-team/~/settings/apps)
-2. Click **Create**
-3. Fill in:
-   - **Name**: Comp AI Security
-   - **Redirect URL**: \`{CALLBACK_URL}\`
-4. Click **Create**
-
-### Step 2: Get Credentials
-Copy the **Client ID** and **Client Secret** (click Reveal)
-
-### Step 3: Configure in Admin
-Enter the Client ID, Secret, and the integration slug (from \`vercel.com/integrations/{slug}\`) in the admin page.
-
-> **Team Support**: When connecting, you'll choose whether to install for your personal account or a team. If you select a team, all API calls will be scoped to that team.`,
-      additionalOAuthSettings: [
-        {
-          id: 'appSlug',
-          label: 'Vercel Integration Slug',
-          type: 'text',
-          helpText:
-            'The slug from your Vercel integration URL (https://vercel.com/integrations/{slug}). Used to launch the correct install page.',
-          required: true,
-          token: '{APP_SLUG}',
-        },
-      ],
-    },
+    type: 'api_key',
+    config: { in: 'header', name: 'Authorization', prefix: 'Bearer ' },
   },
+  credentialFields: [
+    {
+      id: 'api_key',
+      label: 'Vercel Access Token',
+      type: 'password',
+      required: true,
+      helpText:
+        'Creá un token en vercel.com/account/settings/tokens con scope limitado al equipo (no Full Account).',
+    },
+  ],
 
   baseUrl: 'https://api.vercel.com',
 
