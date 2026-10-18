@@ -1,5 +1,6 @@
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import tls from 'node:tls';
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
@@ -21,6 +22,13 @@ function isLocalhostUrl(connectionString: string): boolean {
   }
 }
 
+// Nivela: CA extra (PEM) para bases fuera de AWS, p.ej. Supabase Root 2021 CA.
+// Se suma al trust store por defecto y mantiene la verificación completa (cadena + hostname).
+function extraCaSsl(): { ca: string[] } | undefined {
+  const pem = process.env.DATABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  return pem ? { ca: [...tls.rootCertificates, pem] } : undefined;
+}
+
 function createPrismaClient(): PrismaClient {
   const rawUrl = process.env.DATABASE_URL!;
   const isLocalhost = isLocalhostUrl(rawUrl);
@@ -29,10 +37,16 @@ function createPrismaClient(): PrismaClient {
   // See apps/app/prisma/client.ts for the rationale on dropping `ssl.ca`
   // (replaces rather than augments the trust store; broke RDS Proxy
   // chain validation).
-  const ssl: undefined | { checkServerIdentity: () => undefined } | { rejectUnauthorized: false } =
+  const ssl:
+    | undefined
+    | { ca: string[] }
+    | { checkServerIdentity: () => undefined }
+    | { rejectUnauthorized: false } =
     isLocalhost
       ? undefined
-      : allowInsecure
+      : extraCaSsl()
+        ? extraCaSsl()
+        : allowInsecure
         ? { rejectUnauthorized: false }
         : { checkServerIdentity: () => undefined };
 

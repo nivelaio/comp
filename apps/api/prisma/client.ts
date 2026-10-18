@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import tls from 'node:tls';
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
@@ -40,12 +41,17 @@ function createPrismaClient(): PrismaClient {
   //   silently downgrading.
   const hasCABundle = !!process.env.NODE_EXTRA_CA_CERTS;
   const allowInsecure = process.env.PRISMA_ALLOW_INSECURE_TLS === '1';
+  // Nivela: CA extra (PEM) para bases fuera de AWS (p.ej. Supabase); verificación completa.
+  const extraCaPem = process.env.DATABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
   let ssl:
     | undefined
+    | { ca: string[] }
     | { checkServerIdentity: () => undefined }
     | { rejectUnauthorized: false };
   if (isLocalhost) {
     ssl = undefined;
+  } else if (extraCaPem) {
+    ssl = { ca: [...tls.rootCertificates, extraCaPem] };
   } else if (hasCABundle) {
     // Verified TLS: rely on Node's TLS context (NODE_EXTRA_CA_CERTS adds the AWS
     // RDS CA to the trust store). Skip hostname check because connections may

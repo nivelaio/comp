@@ -1,5 +1,8 @@
+import tls from 'node:tls';
+
 export type SslConfig =
   | undefined
+  | { ca: string[] }
   | { checkServerIdentity: () => undefined }
   | { rejectUnauthorized: false };
 
@@ -22,6 +25,9 @@ export function resolveSslConfig(
   env: Partial<NodeJS.ProcessEnv> = process.env,
 ): SslConfig {
   if (isLocalhostUrl(databaseUrl)) return undefined;
+  // Nivela: CA extra (PEM) para bases fuera de AWS (p.ej. Supabase); verificación completa.
+  const pem = env.DATABASE_CA_CERT?.replace(/\\n/g, '\n').trim();
+  if (pem) return { ca: [...tls.rootCertificates, pem] };
   if (env.PRISMA_ALLOW_INSECURE_TLS === '1') return { rejectUnauthorized: false };
   // Verified TLS via Node's default trust store, which includes Amazon Root
   // CA 1 — where AWS RDS Proxy chains terminate. Hostname check is skipped
