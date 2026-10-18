@@ -100,6 +100,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && wget -q -O /usr/local/share/aws-rds-ca-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Nivela: sumar la CA raíz de Supabase (la base está en Supabase, no en RDS)
+COPY apps/api/certs/supabase-prod-ca-2021.crt /tmp/supabase-ca.crt
+RUN cat /tmp/supabase-ca.crt >> /usr/local/share/aws-rds-ca-bundle.pem && rm /tmp/supabase-ca.crt
 ENV NODE_EXTRA_CA_CERTS=/usr/local/share/aws-rds-ca-bundle.pem
 
 # Copy built NestJS app
